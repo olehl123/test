@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тест з таймером</title>
+<style>
+  :root{
+    --bg:#0f172a;
+    --card:#ffffff;
+    --accent:#2563eb;
+    --accent-dark:#1d4ed8;
+    --danger:#dc2626;
+    --warn:#d97706;
+    --text:#0f172a;
+    --muted:#64748b;
+    --border:#e2e8f0;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(160deg,#0f172a,#1e293b);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .card{
+    background:var(--card);
+    border-radius:16px;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);
+    width:100%;
+    max-width:640px;
+    padding:40px;
+  }
+  h1{font-size:22px;margin:0 0 8px;}
+  p{line-height:1.55;color:var(--muted);}
+  label{display:block;font-weight:600;font-size:14px;margin:18px 0 6px;}
+  input[type=text], input[type=email]{
+    width:100%;
+    padding:12px 14px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    font-size:15px;
+    outline:none;
+    transition:border-color .15s;
+  }
+  input:focus{border-color:var(--accent);}
+  .rules{
+    background:#f8fafc;
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 18px;
+    margin:20px 0;
+    font-size:14px;
+    color:#334155;
+  }
+  .rules li{margin:6px 0;}
+  button{
+    cursor:pointer;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    font-weight:600;
+    padding:14px 20px;
+    width:100%;
+    margin-top:8px;
+    transition:background .15s, transform .05s;
+  }
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-primary:active{transform:scale(.99);}
+  .btn-secondary{background:#f1f5f9;color:var(--text);}
+  .btn-secondary:hover{background:#e2e8f0;}
+  .error{color:var(--danger);font-size:13px;margin-top:8px;min-height:16px;}
+
+  /* full-bleed test screen */
+  #screen-test{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:#0f172a;
+    flex-direction:column;
+  }
+  .topbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 20px;
+    background:#111827;
+    color:#fff;
+    flex-shrink:0;
+  }
+  .topbar .who{font-size:13px;color:#94a3b8;}
+  .timer{
+    font-variant-numeric:tabular-nums;
+    font-size:20px;
+    font-weight:700;
+    letter-spacing:.5px;
+  }
+  .timer.warn{color:#fbbf24;}
+  .timer.danger{color:#f87171;}
+  .finish-btn{
+    background:#334155;
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    padding:8px 14px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+    width:auto;
+    margin:0;
+  }
+  .finish-btn:hover{background:#475569;}
+  iframe{
+    flex:1;
+    width:100%;
+    border:none;
+    background:#fff;
+  }
+
+  /* warning overlay */
+  #warning-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.92);
+    z-index:50;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding:24px;
+  }
+  #warning-overlay .box{
+    background:#fff;
+    border-radius:16px;
+    padding:36px 32px;
+    max-width:420px;
+  }
+  #warning-overlay h2{color:var(--warn);margin-top:0;}
+
+  /* locked / finished screen */
+  #screen-locked{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:#0f172a;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  #screen-locked .card h1{color:var(--danger);}
+  #screen-locked .card.ok h1{color:#059669;}
+  .meta{
+    background:#f8fafc;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:14px 16px;
+    font-size:13px;
+    color:#334155;
+    margin-top:16px;
+  }
+  .meta div{margin:3px 0;}
+  .hidden{display:none !important;}
+</style>
+</head>
+<body>
+
+<!-- ===================== СТАРТОВА СТОРІНКА ===================== -->
+<div class="card" id="screen-start">
+  <h1>Тест: <span id="test-title-label">Назва тесту</span></h1>
+  <p>Перед початком введіть своє ім'я та email. Уважно прочитайте правила нижче — тест починається одразу після натискання кнопки «Почати».</p>
+
+  <label for="p-name">Ім'я та прізвище</label>
+  <input type="text" id="p-name" placeholder="Наприклад: Олег Ковальчук" autocomplete="name">
+
+  <label for="p-email">Email</label>
+  <input type="email" id="p-email" placeholder="name@example.com" autocomplete="email">
+
+  <div class="rules">
+    <strong>Правила проходження:</strong>
+    <ul>
+      <li>На тест відводиться <strong id="rules-duration">60 хвилин</strong>. Таймер стартує одразу після натискання «Почати».</li>
+      <li>Не перемикайтеся на інші вкладки та не згортайте вікно браузера — це фіксується автоматично.</li>
+      <li>Перше порушення — попередження. Друге порушення — тест буде примусово завершено достроково.</li>
+      <li>Проходьте тест в один прийом, до кінця. Перезавантаження сторінки прирівнюється до порушення умов.</li>
+    </ul>
+  </div>
+
+  <button class="btn-primary" id="btn-start">Почати тест</button>
+  <div class="error" id="start-error"></div>
+</div>
+
+<!-- ===================== ЕКРАН ТЕСТУ ===================== -->
+<div id="screen-test">
+  <div class="topbar">
+    <div class="who">Учасник: <span id="who-name"></span> (<span id="who-email"></span>)</div>
+    <div class="timer" id="timer-display">60:00</div>
+  </div>
+  <iframe id="form-frame" title="Тест" src="about:blank"></iframe>
+</div>
+
+<!-- ===================== ПОПЕРЕДЖЕННЯ ПРИ ПЕРЕМИКАННІ ВКЛАДКИ ===================== -->
+<div id="warning-overlay">
+  <div class="box">
+    <h2>⚠ Попередження</h2>
+    <p>Ви залишили вкладку тесту. Це порушення №<span id="violation-count">1</span> з допустимого ліміту.</p>
+    <p><strong>Ще одне порушення — і тест буде автоматично завершено.</strong></p>
+    <button class="btn-secondary" id="btn-ack-warning">Зрозуміло, продовжити</button>
+  </div>
+</div>
+
+<!-- ===================== ЕКРАН ЗАВЕРШЕННЯ / БЛОКУВАННЯ ===================== -->
+<div id="screen-locked">
+  <div class="card" id="locked-card">
+    <h1 id="locked-title">Тест завершено</h1>
+    <p id="locked-message"></p>
+    <div class="meta">
+      <div>Учасник: <strong id="m-name"></strong></div>
+      <div>Email: <strong id="m-email"></strong></div>
+      <div>Час початку: <strong id="m-start"></strong></div>
+      <div>Час завершення: <strong id="m-end"></strong></div>
+      <div>Причина завершення: <strong id="m-reason"></strong></div>
+    </div>
+    <p style="margin-top:18px;font-size:13px;">Повідомте адміністратора про результат, якщо потрібно.</p>
+  </div>
+</div>
+
+<script>
+/* ======================= НАЛАШТУВАННЯ ======================= */
+/* Відредагуйте ці значення під ваш тест */
+const CONFIG = {
+  testTitle: "Назва тесту",              // Заголовок, що показується на старті
+  durationMinutes: 60,                    // Тривалість тесту в хвилинах
+
+  // Вставте посилання на вашу Google Форму для вбудовування.
+  // Відкрийте форму -> кнопка "Надіслати" -> вкладка "<>" (Вбудувати) -> скопіюйте URL з src="..."
+  // Або просто візьміть звичайне посилання форми і замініть "/viewform" на "/viewform?embedded=true"
+  formEmbedUrl: "https://docs.google.com/forms/d/e/1FAIpQLSeqOetr7wUCsysMLqGx0gsSWv78wqex9P46dbAAOnDqrNBSOA/viewform?embedded=true",
+
+  // (Необов'язково) Якщо у формі є поля "Ім'я" та "Email", можна автоматично
+  // підставляти туди дані зі стартової сторінки за допомогою pre-fill entry ID.
+  // Як отримати: у формі -> "..." -> "Отримати попередньо заповнене посилання" ->
+  // заповніть тестові значення -> скопіюйте посилання -> знайдіть в ньому entry.XXXXXXXXX=
+  nameEntryId: "",   // напр. "entry.123456789" (залиште порожнім, якщо не потрібно)
+  emailEntryId: "",  // напр. "entry.987654321"
+
+  maxViolationsBeforeClose: 2  // 1 = попередження, 2 = закриття тесту
+};
+/* ============================================================= */
+
+let violationCount = 0;
+let remainingSeconds = CONFIG.durationMinutes * 60;
+let timerInterval = null;
+let startTime = null;
+let participant = { name: "", email: "" };
+let finished = false;
+
+document.getElementById('test-title-label').textContent = CONFIG.testTitle;
+document.getElementById('rules-duration').textContent = CONFIG.durationMinutes + " хвилин";
+document.getElementById('timer-display').textContent = formatTime(remainingSeconds);
+
+document.getElementById('btn-start').addEventListener('click', startTest);
+document.getElementById('btn-ack-warning').addEventListener('click', () => {
+  document.getElementById('warning-overlay').style.display = 'none';
+});
+
+function startTest(){
+  const nameEl = document.getElementById('p-name');
+  const emailEl = document.getElementById('p-email');
+  const name = nameEl.value.trim();
+  const email = emailEl.value.trim();
+  const errEl = document.getElementById('start-error');
+
+  if (!name){ errEl.textContent = "Введіть, будь ласка, ім'я."; nameEl.focus(); return; }
+  if (!email || !email.includes('@')){ errEl.textContent = "Введіть коректний email."; emailEl.focus(); return; }
+
+  participant = { name, email };
+  errEl.textContent = "";
+
+  document.getElementById('who-name').textContent = name;
+  document.getElementById('who-email').textContent = email;
+  document.getElementById('m-name').textContent = name;
+  document.getElementById('m-email').textContent = email;
+
+  // Формуємо URL форми з підстановкою імені/email, якщо задані entry ID
+  let src = CONFIG.formEmbedUrl;
+  const params = [];
+  if (CONFIG.nameEntryId) params.push(CONFIG.nameEntryId + "=" + encodeURIComponent(name));
+  if (CONFIG.emailEntryId) params.push(CONFIG.emailEntryId + "=" + encodeURIComponent(email));
+  if (params.length){
+    src += (src.includes('?') ? '&' : '?') + params.join('&');
+  }
+  document.getElementById('form-frame').src = src;
+
+  startTime = new Date();
+  document.getElementById('m-start').textContent = formatDateTime(startTime);
+
+  document.getElementById('screen-start').style.display = 'none';
+  document.getElementById('screen-test').style.display = 'flex';
+
+  timerInterval = setInterval(tick, 1000);
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('blur', handleBlur);
+}
+
+function tick(){
+  remainingSeconds--;
+  if (remainingSeconds <= 0){
+    endTest('timeout', 'Час, відведений на тест, вичерпано.');
+    return;
+  }
+  const display = document.getElementById('timer-display');
+  display.textContent = formatTime(remainingSeconds);
+  display.classList.toggle('warn', remainingSeconds <= 300 && remainingSeconds > 60);
+  display.classList.toggle('danger', remainingSeconds <= 60);
+}
+
+function handleVisibilityChange(){
+  if (finished) return;
+  if (document.hidden){
+    registerViolation();
+  }
+}
+
+function handleBlur(){
+  // Клік у форму (iframe) теж викликає window.blur — це нормально, не порушення.
+  // Реагуємо тільки якщо фокус пішов НЕ в iframe (тобто користувач перейшов
+  // в інший додаток/вікно поза браузером). Основна перевірка — visibilitychange вище.
+  if (finished) return;
+  const frame = document.getElementById('form-frame');
+  setTimeout(() => {
+    if (document.activeElement !== frame && document.hidden){
+      registerViolation();
+    }
+  }, 50);
+}
+
+function registerViolation(){
+  violationCount++;
+  if (violationCount >= CONFIG.maxViolationsBeforeClose){
+    endTest('violation', 'Тест закрито автоматично: повторне перемикання вкладки/згортання вікна (порушення №' + violationCount + ').');
+  } else {
+    document.getElementById('violation-count').textContent = violationCount;
+    document.getElementById('warning-overlay').style.display = 'flex';
+  }
+}
+
+function endTest(reason, message){
+  if (finished) return;
+  finished = true;
+  clearInterval(timerInterval);
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  window.removeEventListener('blur', handleBlur);
+
+  document.getElementById('screen-test').style.display = 'none';
+  document.getElementById('warning-overlay').style.display = 'none';
+
+  const endTime = new Date();
+  const lockedCard = document.getElementById('locked-card');
+  const title = document.getElementById('locked-title');
+
+  if (reason === 'violation'){
+    lockedCard.classList.remove('ok');
+    title.textContent = "Тест закрито достроково";
+  } else if (reason === 'timeout'){
+    lockedCard.classList.remove('ok');
+    title.textContent = "Час вичерпано";
+  } else {
+    lockedCard.classList.add('ok');
+    title.textContent = "Тест завершено";
+  }
+
+  document.getElementById('locked-message').textContent = message;
+  document.getElementById('m-end').textContent = formatDateTime(endTime);
+  document.getElementById('m-reason').textContent = message;
+
+  // Прибираємо iframe, щоб унеможливити подальшу взаємодію з формою
+  document.getElementById('form-frame').src = 'about:blank';
+
+  document.getElementById('screen-locked').style.display = 'flex';
+}
+
+function formatTime(totalSeconds){
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function formatDateTime(d){
+  return d.toLocaleString('uk-UA');
+}
+</script>
+</body>
+</html>
